@@ -2,10 +2,7 @@
 Usage:
   # From tensorflow/models/
   # Create train data:
-  python generate_tfrecord.py --csv_input=data/train_labels.csv  --output_path=train.record
-
-  # Create test data:
-  python generate_tfrecord.py --csv_input=data/test_labels.csv  --output_path=test.record
+  !python generate_tfrecord_V2.py --image_dir=model/train --csv_input=model/train.csv --label_map=model/label_map.json --output_path=train.record
 """
 from __future__ import division
 from __future__ import print_function
@@ -15,6 +12,7 @@ import os
 import io
 import pandas as pd
 import tensorflow.compat.v1 as tf
+import json
 
 from PIL import Image
 from object_detection.utils import dataset_util
@@ -33,10 +31,10 @@ FLAGS = flags.FLAGS
 def load_json(json_path):
     with open(json_path) as json_file:
         label_map = json.load(json_file)
-    return label_map_dictionary
+    return label_map
 
-def class_text_to_int(row_label):
-    return FLAGS.label_map.get(item, None)
+def class_text_to_int(row_label, label_map):
+    return label_map.get(row_label, None)
 
 
 def split(df, group):
@@ -45,7 +43,7 @@ def split(df, group):
     return [data(filename, gb.get_group(x)) for filename, x in zip(gb.groups.keys(), gb.groups)]
 
 
-def create_tf_example(group, path):
+def create_tf_example(group, path, label_map):
     with tf.gfile.GFile(os.path.join(path, '{}'.format(group.filename)), 'rb') as fid:
         encoded_jpg = fid.read()
     encoded_jpg_io = io.BytesIO(encoded_jpg)
@@ -67,7 +65,7 @@ def create_tf_example(group, path):
         ymins.append(row['ymin'] / height)
         ymaxs.append(row['ymax'] / height)
         classes_text.append(row['class'].encode('utf8'))
-        classes.append(class_text_to_int(row['class']))
+        classes.append(class_text_to_int(row['class'],label_map))
 
     tf_example = tf.train.Example(features=tf.train.Features(feature={
         'image/height': dataset_util.int64_feature(height),
@@ -88,12 +86,12 @@ def create_tf_example(group, path):
 
 def main(_):
     writer = tf.python_io.TFRecordWriter(FLAGS.output_path)
-    label_map_dictionary = load_json(FLAGS.label_map)
+    label_map = load_json(FLAGS.label_map)
     path = os.path.join(FLAGS.image_dir)
     examples = pd.read_csv(FLAGS.csv_input)
     grouped = split(examples, 'filename')
     for group in grouped:
-        tf_example = create_tf_example(group, path)
+        tf_example = create_tf_example(group, path, label_map)
         writer.write(tf_example.SerializeToString())
 
     writer.close()
