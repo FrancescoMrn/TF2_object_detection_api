@@ -37,7 +37,7 @@ point the GUI to the image folder and select as output another folder (the defau
 Load the two folders inside Google Drive. Open the notebook provided in this repo (__TensorFlow2_Object_Detection_API.ipynb__) inside Google Colab (adjust the paths and parameters as needed) and follow the steps reported.
 
 
-## Future improvemets
+## Future improvements
 
 - Implement TF2 graph inference to improve speed
 - Review functions and report them inside this git repo
